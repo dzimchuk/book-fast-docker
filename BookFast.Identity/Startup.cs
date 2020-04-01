@@ -1,15 +1,18 @@
+using System;
 using System.Collections.Generic;
-using BookFast.SeedWork;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace BookFast.Web
+namespace BookFast.Identity
 {
     public class Startup
     {
@@ -19,19 +22,11 @@ namespace BookFast.Web
         {
             this.configuration = configuration;
         }
-        
+
         public void ConfigureServices(IServiceCollection services)
         {
-            var modules = new List<ICompositionModule>
-                          {
-                              new Composition.CompositionModule(),
-                              new Proxy.Composition.CompositionModule()
-                          };
-
-            foreach (var module in modules)
-            {
-                module.AddServices(services, configuration);
-            }
+            services.AddControllersWithViews();
+            services.AddApplicationInsightsTelemetry(configuration);
 
             ConfigureDataProtection(services);
         }
@@ -48,8 +43,8 @@ namespace BookFast.Web
                 container.CreateIfNotExistsAsync().GetAwaiter().GetResult();
 
                 services.AddDataProtection()
-                    .SetApplicationName("BookFast.Web")
-                    .PersistKeysToAzureBlobStorage(container, "BookFast.Web.xml");
+                    .SetApplicationName("BookFast.Identity")
+                    .PersistKeysToAzureBlobStorage(container, "BookFast.Identity.xml");
             }
         }
 
@@ -62,6 +57,7 @@ namespace BookFast.Web
             else
             {
                 app.UseExceptionHandler("/Home/Error");
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
             app.UseHttpsRedirection();
@@ -69,7 +65,6 @@ namespace BookFast.Web
 
             app.UseRouting();
 
-            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
